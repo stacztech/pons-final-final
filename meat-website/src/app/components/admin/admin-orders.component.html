@@ -1,0 +1,43 @@
+<div class="admin-orders-controls">
+  <input type="text" [(ngModel)]="searchTerm" (input)="applyFilters()" placeholder="Search Order ID or User ID" class="filter-input" />
+  <select [(ngModel)]="filterStatus" (change)="applyFilters()" class="filter-select">
+    <option value="">All Statuses</option>
+    <option value="pending">Pending</option>
+    <option value="delivered">Delivered</option>
+    <option value="cancelled">Cancelled</option>
+  </select>
+  <select [(ngModel)]="filterUser" (change)="applyFilters()" class="filter-select">
+    <option value="">All Users</option>
+    <option *ngFor="let name of userNames" [value]="name">{{name}}</option>
+  </select>
+  <input type="date" [(ngModel)]="filterDate" (change)="applyFilters()" class="filter-input" />
+</div>
+<div class="table-responsive">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>User Name</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of pagedOrders">
+        <td><a (click)="viewOrderDetail(order.id)" style="color:#d02653;cursor:pointer;text-decoration:underline;">{{ order.id }}</a></td>
+        <td>{{ userIdToName[order.userId] }}</td>
+        <td>{{ order.status }}</td>
+        <td>{{ order.total | currency:'INR' }}</td>
+        <td>{{ order.orderDate | date:'medium' }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<div class="pagination-controls" *ngIf="totalPages > 1">
+  <button (click)="setPage(page-1)" [disabled]="page === 1">&lt;</button>
+  <span *ngFor="let p of [].constructor(totalPages); let i = index">
+    <button (click)="setPage(i+1)" [class.active]="page === (i+1)">{{i+1}}</button>
+  </span>
+  <button (click)="setPage(page+1)" [disabled]="page === totalPages">&gt;</button>
+</div> 

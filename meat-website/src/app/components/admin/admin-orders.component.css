@@ -1,0 +1,77 @@
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+.admin-table th, .admin-table td {
+  border: 1px solid #f0f0f0;
+  padding: 10px 12px;
+  text-align: left;
+}
+.admin-table th {
+  background: #d02653;
+  color: #fff;
+  font-weight: 600;
+}
+.admin-table tr:nth-child(even) {
+  background: #fafbfc;
+}
+.admin-table tr:hover {
+  background: #ffe6ea;
+}
+.admin-orders-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.filter-input, .filter-select {
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+  min-width: 120px;
+}
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+.pagination-controls {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin: 18px 0 0 0;
+}
+.pagination-controls button {
+  background: #fff;
+  border: 1px solid #d02653;
+  color: #d02653;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin: 0 2px;
+  transition: background 0.2s, color 0.2s;
+}
+.pagination-controls button.active, .pagination-controls button:hover {
+  background: #d02653;
+  color: #fff;
+}
+@media (max-width: 700px) {
+  .admin-orders-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .filter-input, .filter-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .admin-table th, .admin-table td {
+    padding: 7px 6px;
+    font-size: 0.97rem;
+  }
+  .pagination-controls button {
+    font-size: 0.95rem;
+    padding: 3px 8px;
+  }
+} 

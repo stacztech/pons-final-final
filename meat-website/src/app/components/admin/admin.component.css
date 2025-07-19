@@ -1,0 +1,53 @@
+.admin-dashboard {
+  max-width: 1200px;
+  margin: 32px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  padding: 0 0 32px 0;
+  min-height: 600px;
+}
+.admin-nav {
+  display: flex;
+  border-bottom: 2px solid #f0f0f0;
+  background: linear-gradient(90deg, #f75e73 0%, #d02653 100%);
+  border-radius: 12px 12px 0 0;
+}
+.admin-nav button {
+  flex: 1;
+  padding: 18px 0;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.admin-nav button.active, .admin-nav button:hover {
+  background: #fff;
+  color: #E31837;
+}
+.admin-content {
+  padding: 32px;
+}
+@media (max-width: 700px) {
+  .admin-dashboard {
+    padding: 0 0 16px 0;
+    min-width: 0;
+  }
+  .admin-nav {
+    flex-direction: column;
+    border-radius: 0;
+  }
+  .admin-nav button {
+    width: 100%;
+    font-size: 1rem;
+    padding: 12px 0;
+    border-radius: 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .admin-content {
+    padding: 6px;
+  }
+} 

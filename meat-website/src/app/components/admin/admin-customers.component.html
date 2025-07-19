@@ -1,0 +1,18 @@
+<div class="table-responsive">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let customer of customers">
+        <td data-label="Name">{{ customer.name }}</td>
+        <td data-label="Email">{{ customer.email }}</td>
+        <td data-label="Phone">{{ customer.phone }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div> 

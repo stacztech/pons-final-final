@@ -1,0 +1,64 @@
+<div class="container my-5">
+      <h2>Shopping Cart</h2>
+
+      <div *ngIf="cartItems.length === 0" class="text-center py-5">
+        <h3>Your cart is empty</h3>
+        <p>Add some items to your cart to see them here!</p>
+        <a routerLink="/" class="btn btn-primary">Continue Shopping</a>
+      </div>
+
+      <div *ngIf="cartItems.length > 0" class="cart-items">
+        <div *ngFor="let item of cartItems" class="cart-item card mb-3">
+          <div class="card-body">
+            <div class="d-flex align-items-center">
+              <img [src]="item.image" [alt]="item.name" class="cart-item-image me-3">
+              <div class="flex-grow-1">
+                <h5 class="mb-1">{{item.name}}</h5>
+                <p class="mb-1">Weight: {{item.quantity}} kg</p>
+                <div class="d-flex align-items-center">
+                  <div class="quantity-control">
+                    <button 
+                      class="btn btn-sm btn-outline-secondary"
+                      (click)="updateQuantity(item, -1)"
+                      [disabled]="item.quantity <= 1">
+                      -
+                    </button>
+                    <input 
+                      type="number"
+                      class="form-control mx-2 quantity-input"
+                      [value]="item.quantity"
+                      [min]="1"
+                      [step]="1"
+                      (change)="onQuantityChange(item.id, $event)" 
+                      placeholder="Qty" />
+                    <button 
+                      class="btn btn-sm btn-outline-secondary"
+                      (click)="updateQuantity(item, 1)">
+                      +
+                    </button>
+                  </div>
+                  <button 
+                    class="btn btn-sm btn-danger ms-3"
+                    (click)="removeItem(item)">
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div class="text-end ms-3">
+                <div class="fw-bold">₹{{item.price * item.quantity}}</div>
+                <small class="text-muted">₹{{item.price}} each</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <h4 class="mb-0">Total: ₹{{total}}</h4>
+              <a routerLink="/checkout" class="btn btn-primary" (click)="proceedToCheckout()">Proceed to Checkout</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> 

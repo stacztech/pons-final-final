@@ -1,0 +1,10 @@
+<div class="admin-dashboard">
+  <nav class="admin-nav">
+    <button [class.active]="activeTab === 'customers'" (click)="activeTab = 'customers'">Customers</button>
+    <button [class.active]="activeTab === 'orders'" (click)="activeTab = 'orders'">Orders</button>
+  </nav>
+  <div class="admin-content">
+    <app-admin-customers *ngIf="activeTab === 'customers'"></app-admin-customers>
+    <app-admin-orders *ngIf="activeTab === 'orders'"></app-admin-orders>
+  </div>
+</div> 
