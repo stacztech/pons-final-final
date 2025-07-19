@@ -440,9 +440,7 @@ export class GoatComponent implements OnInit {
     }
     if (itemsToAdd.length === 0) return;
     if (this.authService.isLoggedIn()) {
-      for (const item of itemsToAdd) {
-        this.cartService.addToCart(item);
-      }
+      this.cartService.addMultipleToCart(itemsToAdd);
       product.quantity1kg = 0;
       product.quantity500g = 0;
       product.isAddedToCart = true;
@@ -477,7 +475,7 @@ export class GoatComponent implements OnInit {
       });
     }
     if (itemsToAdd.length === 0) return;
-    this.cartService.setBuyNowItem(itemsToAdd[0]);
+    this.cartService.setBuyNowItem(itemsToAdd);
     product.quantity1kg = 0;
     product.quantity500g = 0;
     this.router.navigate(['/checkout']);

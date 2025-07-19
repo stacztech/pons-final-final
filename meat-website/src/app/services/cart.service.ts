@@ -22,7 +22,7 @@ export class CartService {
 
   private apiUrl = 'http://localhost:9000/api/cart';
 
-  private buyNowItem: CartItem | null = null;
+  private buyNowItems: CartItem[] | null = null;
 
   constructor(private http: HttpClient) {
     this.fetchCart();
@@ -114,23 +114,31 @@ export class CartService {
     }
   }
 
-  public setBuyNowItem(item: CartItem) {
-    this.buyNowItem = item;
-    localStorage.setItem('buyNowItem', JSON.stringify(item));
+  public setBuyNowItem(items: CartItem[]) {
+    this.buyNowItems = items;
+    localStorage.setItem('buyNowItems', JSON.stringify(items));
   }
 
-  public getBuyNowItem(): CartItem | null {
-    if (this.buyNowItem) return this.buyNowItem;
-    const itemStr = localStorage.getItem('buyNowItem');
-    if (itemStr) {
-      this.buyNowItem = JSON.parse(itemStr);
-      return this.buyNowItem;
+  public getBuyNowItem(): CartItem[] | null {
+    if (this.buyNowItems) return this.buyNowItems;
+    const itemsStr = localStorage.getItem('buyNowItems');
+    if (itemsStr) {
+      this.buyNowItems = JSON.parse(itemsStr);
+      return this.buyNowItems;
     }
     return null;
   }
 
   public clearBuyNowItem() {
-    this.buyNowItem = null;
-    localStorage.removeItem('buyNowItem');
+    this.buyNowItems = null;
+    localStorage.removeItem('buyNowItems');
+  }
+
+  addMultipleToCart(items: CartItem[]) {
+    this.http.post<any>(`${this.apiUrl}/add-multiple`, { items }, { withCredentials: true }).subscribe(res => {
+      this.cartItems = (res.cart?.items || []).map((i: any) => ({ ...i, id: i.id }));
+      this.cartItemsSubject.next(this.cartItems);
+      console.log('CartService addMultipleToCart:', this.cartItems);
+    });
   }
 }

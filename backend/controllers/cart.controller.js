@@ -29,7 +29,7 @@ export const addToCart = async (req, res) => {
       console.log('Cart before:', []);
     } else {
       console.log('Cart before:', cart.items);
-      const existingItem = cart.items.find(i => i.id === item.id);
+      const existingItem = cart.items.find(i => i.id === item.id && i.weight === item.weight);
       if (existingItem) {
         existingItem.quantity += item.quantity;
       } else {
@@ -41,6 +41,31 @@ export const addToCart = async (req, res) => {
     res.status(200).json({ success: true, cart });
   } catch (error) {
     console.error('CartController addToCart error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Add multiple items to the cart
+export const addMultipleToCart = async (req, res) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.userId);
+    const items = req.body.items;
+    let cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      cart = new Cart({ user: userId, items: [] });
+    }
+    for (const item of items) {
+      const existingItem = cart.items.find(i => i.id === item.id);
+      if (existingItem) {
+        existingItem.quantity += item.quantity;
+      } else {
+        cart.items.push(item);
+      }
+    }
+    await cart.save();
+    res.status(200).json({ success: true, cart });
+  } catch (error) {
+    console.error('CartController addMultipleToCart error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

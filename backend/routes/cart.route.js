@@ -4,7 +4,8 @@ import {
   addToCart,
   removeFromCart,
   updateCartItem,
-  clearCart
+  clearCart,
+  addMultipleToCart
 } from "../controllers/cart.controller.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
@@ -15,5 +16,6 @@ router.post("/add", verifyToken, addToCart);
 router.post("/remove", verifyToken, removeFromCart);
 router.post("/update", verifyToken, updateCartItem);
 router.post("/clear", verifyToken, clearCart);
+router.post("/add-multiple", verifyToken, addMultipleToCart);
 
 export default router; 

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -37,27 +37,19 @@ import { DeliveryAddressComponent } from './delivery-address.component';
             <div class="card order-summary-card mb-4 mx-auto">
               <div class="card-body">
                 <h3>Order Summary</h3>
-                <ng-container *ngIf="currentStep === 1 && getOrderItems().length === 1">
-                  <div class="d-flex align-items-center mb-3">
-                    <img [src]="getOrderItems()[0].image" [alt]="getOrderItems()[0].name" style="width:90px;height:90px;object-fit:cover;border-radius:6px;margin-right:18px;">
-                    <div class="flex-grow-1">
-                      <div style="font-size:1.2rem;font-weight:600;">{{getOrderItems()[0].name}}</div>
-                      <div style="color:#555;">Weight: {{getOrderItems()[0].weight}}</div>
-                      <div class="d-flex align-items-center mt-2">
-                        <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(getOrderItems()[0], -1)" [disabled]="getOrderItems()[0].quantity <= getMin(getOrderItems()[0])">-</button>
-                        <input type="number" class="form-control mx-2 quantity-input" style="width:50px;display:inline-block;" [value]="getOrderItems()[0].quantity < getMin(getOrderItems()[0]) ? getMin(getOrderItems()[0]) : getOrderItems()[0].quantity" [min]="getMin(getOrderItems()[0])" [step]="1" (change)="onQuantityChange(getOrderItems()[0], $event)">
-                        <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(getOrderItems()[0], 1)">+</button>
-                        <button class="btn btn-sm btn-danger ms-3" (click)="removeItem(getOrderItems()[0])">Remove</button>
-                      </div>
+                <div *ngFor="let item of orderItems" class="d-flex align-items-center mb-3">
+                  <img [src]="item.image" [alt]="item.name" style="width:90px;height:90px;object-fit:cover;border-radius:6px;margin-right:18px;">
+                  <div class="flex-grow-1">
+                    <div style="font-size:1.2rem;font-weight:600;">{{item.name}}</div>
+                    <div style="color:#555;">Weight: {{item.weight}}</div>
+                    <div class="d-flex align-items-center mt-2">
+                      <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(item, -1)" [disabled]="item.quantity <= getMin(item)">-</button>
+                      <input type="number" class="form-control mx-2 quantity-input" style="width:50px;display:inline-block;" [value]="item.quantity < getMin(item) ? getMin(item) : item.quantity" [min]="getMin(item)" [step]="1" (change)="onQuantityChange(item, $event)">
+                      <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(item, 1)">+</button>
+                      <button class="btn btn-sm btn-danger ms-3" (click)="removeItem(item)">Remove</button>
                     </div>
                   </div>
-                </ng-container>
-                <ng-container *ngIf="!(currentStep === 1 && getOrderItems().length === 1)">
-                  <div *ngFor="let item of getOrderItems()" class="d-flex justify-content-between mb-2">
-                    <span>{{item.name}} ({{item.weight}}) x {{item.quantity}}</span>
-                    <span>₹{{item.price * item.quantity}}</span>
-                  </div>
-                </ng-container>
+                </div>
                 <hr>
                 <div class="d-flex justify-content-between">
                   <strong>Total</strong>
@@ -88,7 +80,7 @@ import { DeliveryAddressComponent } from './delivery-address.component';
           <!-- Step 3: Review -->
           <div *ngIf="currentStep === 3">
             <h2>Review Your Order</h2>
-            <div *ngFor="let item of getOrderItems()" class="d-flex justify-content-between align-items-center mb-2">
+            <div *ngFor="let item of orderItems" class="d-flex justify-content-between align-items-center mb-2">
               <div>
                 <span>{{item.name}} ({{item.weight}})</span>
               </div>
@@ -115,27 +107,19 @@ import { DeliveryAddressComponent } from './delivery-address.component';
           <div class="card order-summary-card mb-4">
             <div class="card-body">
               <h3>Order Summary</h3>
-              <ng-container *ngIf="currentStep === 1 && getOrderItems().length === 1">
-                <div class="d-flex align-items-center mb-3">
-                  <img [src]="getOrderItems()[0].image" [alt]="getOrderItems()[0].name" style="width:90px;height:90px;object-fit:cover;border-radius:6px;margin-right:18px;">
-                  <div class="flex-grow-1">
-                    <div style="font-size:1.2rem;font-weight:600;">{{getOrderItems()[0].name}}</div>
-                    <div style="color:#555;">Weight: {{getOrderItems()[0].weight}}</div>
-                    <div class="d-flex align-items-center mt-2">
-                      <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(getOrderItems()[0], -1)" [disabled]="getOrderItems()[0].quantity <= getMin(getOrderItems()[0])">-</button>
-                      <input type="number" class="form-control mx-2 quantity-input" style="width:50px;display:inline-block;" [value]="getOrderItems()[0].quantity < getMin(getOrderItems()[0]) ? getMin(getOrderItems()[0]) : getOrderItems()[0].quantity" [min]="getMin(getOrderItems()[0])" [step]="1" (change)="onQuantityChange(getOrderItems()[0], $event)">
-                      <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(getOrderItems()[0], 1)">+</button>
-                      <button class="btn btn-sm btn-danger ms-3" (click)="removeItem(getOrderItems()[0])">Remove</button>
-                    </div>
+              <div *ngFor="let item of orderItems" class="d-flex align-items-center mb-3">
+                <img [src]="item.image" [alt]="item.name" style="width:90px;height:90px;object-fit:cover;border-radius:6px;margin-right:18px;">
+                <div class="flex-grow-1">
+                  <div style="font-size:1.2rem;font-weight:600;">{{item.name}}</div>
+                  <div style="color:#555;">Weight: {{item.weight}}</div>
+                  <div class="d-flex align-items-center mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(item, -1)" [disabled]="item.quantity <= getMin(item)">-</button>
+                    <input type="number" class="form-control mx-2 quantity-input" style="width:50px;display:inline-block;" [value]="item.quantity < getMin(item) ? getMin(item) : item.quantity" [min]="getMin(item)" [step]="1" (change)="onQuantityChange(item, $event)">
+                    <button class="btn btn-sm btn-outline-secondary" (click)="updateQuantity(item, 1)">+</button>
+                    <button class="btn btn-sm btn-danger ms-3" (click)="removeItem(item)">Remove</button>
                   </div>
                 </div>
-              </ng-container>
-              <ng-container *ngIf="!(currentStep === 1 && getOrderItems().length === 1)">
-                <div *ngFor="let item of getOrderItems()" class="d-flex justify-content-between mb-2">
-                  <span>{{item.name}} ({{item.weight}}) x {{item.quantity}}</span>
-                  <span>₹{{item.price * item.quantity}}</span>
-                </div>
-              </ng-container>
+              </div>
               <hr>
               <div class="d-flex justify-content-between">
                 <strong>Total</strong>
@@ -289,20 +273,33 @@ export class CheckoutComponent implements OnInit {
   paymentMethod: string = '';
   isProcessing: boolean = false;
   errorMessage: string = '';
-  buyNowItem: CartItem | null = null;
+  buyNowItems: CartItem[] | null = null;
+  orderItems: CartItem[] = [];
 
   constructor(
     private cartService: CartService,
     private ordersService: OrdersService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     // Check authentication on load
     this.authService.checkAuthentication();
-    this.buyNowItem = this.cartService.getBuyNowItem();
-    if (this.getOrderItems().length === 0) {
+    this.buyNowItems = this.cartService.getBuyNowItem();
+    if (this.buyNowItems) {
+      this.orderItems = this.buyNowItems;
+    } else {
+      this.cartService.cartItems$.subscribe(items => {
+        this.orderItems = items;
+        if (this.orderItems.length === 0) {
+          this.router.navigate(['/cart']);
+        }
+      });
+    }
+    // If not using buyNowItem, check immediately for empty cart
+    if (!this.buyNowItems && this.cartService.getCartItems().length === 0) {
       this.router.navigate(['/cart']);
     }
   }
@@ -312,12 +309,11 @@ export class CheckoutComponent implements OnInit {
   }
 
   getOrderItems(): CartItem[] {
-    if (this.buyNowItem) return [this.buyNowItem];
-    return this.cartService.getCartItems();
+    return this.orderItems;
   }
 
   getTotal(): number {
-    return this.cartService.getTotal();
+    return this.orderItems.reduce((total, item) => total + item.price * item.quantity, 0);
   }
 
   nextStep() {
@@ -359,7 +355,7 @@ export class CheckoutComponent implements OnInit {
         paymentMethod: this.paymentMethod
       };
       this.ordersService.placeOrder(orderData).subscribe(response => {
-        if (this.buyNowItem) this.cartService.clearBuyNowItem();
+        if (this.buyNowItems) this.cartService.clearBuyNowItem();
         this.cartService.clearCart();
         alert('Order placed successfully!');
         this.router.navigate(['/order-success', response.order.id]);
@@ -376,19 +372,24 @@ export class CheckoutComponent implements OnInit {
   }
 
   updateQuantity(item: CartItem, change: number) {
+    console.log('[updateQuantity] item:', item, 'change:', change);
     const min = this.getMin(item);
     let newQuantity = Math.max(min, Math.round(item.quantity + change));
+    console.log('[updateQuantity] newQuantity:', newQuantity);
     if (newQuantity < min) newQuantity = min;
-    if (this.buyNowItem && this.buyNowItem.id === item.id) {
-      if (newQuantity >= min) {
-        this.buyNowItem = { ...this.buyNowItem, quantity: newQuantity };
-        this.cartService.setBuyNowItem(this.buyNowItem);
-      } else {
-        this.removeItem(item);
-      }
+    if (this.buyNowItems && this.buyNowItems.some(i => i.id === item.id)) {
+      // update the matching item in buyNowItems
+      this.buyNowItems = this.buyNowItems.map(i => i.id === item.id ? { ...i, quantity: newQuantity } : i);
+      this.cartService.setBuyNowItem(this.buyNowItems);
+      this.orderItems = this.buyNowItems;
     } else {
       if (newQuantity >= min) {
         this.cartService.updateQuantity(item.id, newQuantity);
+        console.log('[updateQuantity] cartService.updateQuantity called:', item.id, newQuantity);
+        // Force refresh cart after update
+        setTimeout(() => {
+          this.cartService.fetchCart();
+        }, 300);
       } else {
         this.removeItem(item);
       }
@@ -399,6 +400,7 @@ export class CheckoutComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const min = this.getMin(item);
     const quantity = parseInt(input.value, 10);
+    console.log('[onQuantityChange] item:', item, 'input value:', input.value, 'parsed quantity:', quantity);
     if (!isNaN(quantity) && quantity >= min) {
       this.updateQuantity(item, quantity - item.quantity);
     } else if (!isNaN(quantity) && quantity < min) {
@@ -410,11 +412,9 @@ export class CheckoutComponent implements OnInit {
   }
 
   removeItem(item: CartItem) {
-    if (this.buyNowItem && this.buyNowItem.id === item.id) {
+    if (this.buyNowItems && this.buyNowItems.some(i => i.id === item.id)) {
       this.cartService.clearBuyNowItem();
-      this.buyNowItem = null;
-      // Optionally, navigate away or show empty state
-      this.router.navigate(['/cart']);
+      this.buyNowItems = null;
     } else {
       this.cartService.removeFromCart(item.id);
     }

@@ -12,7 +12,7 @@ import { AuthService, User } from '../../services/auth.service';
 export class AdminCustomersComponent implements OnInit {
   customers: User[] = [];
 
-  constructor(private authService: AuthService) {}
+  constructor(public authService: AuthService) {}
 
   ngOnInit() {
     this.authService.getAllUsers().subscribe({
