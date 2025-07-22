@@ -87,7 +87,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     loadComponent: () => import('./components/admin/admin.component').then(m => m.AdminComponent),
-    //canActivate: [AdminGuard]
+    canActivate: [AdminGuard]
   },
   {
     path: 'admin-login',
@@ -96,12 +96,12 @@ export const routes: Routes = [
   {
     path: 'admin/orders/:id',
     loadComponent: () => import('./components/admin/admin-order-detail.component').then(m => m.AdminOrderDetailComponent),
-    //canActivate: [AdminGuard]
+    canActivate: [AdminGuard]
   },
   {
     path: 'admin/orders',
     loadComponent: () => import('./components/admin/admin-orders.component').then(m => m.AdminOrdersComponent),
-    //canActivate: [AdminGuard]
+    canActivate: [AdminGuard]
   },
   { path: '**', redirectTo: '' }
 ];

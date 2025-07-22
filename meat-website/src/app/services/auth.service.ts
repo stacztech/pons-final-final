@@ -97,10 +97,19 @@ export class AuthService {
   checkAuth(): void {
     this.http.get<any>(`${this.apiUrl}/check-auth`, { withCredentials: true }).subscribe({
       next: (response) => {
-        this.currentUserSubject.next(response.user);
+        if (response && response.success && response.user) {
+          console.log('User authenticated:', response.user.email);
+          this.currentUserSubject.next(response.user);
+        } else {
+          console.log('No user data in response - logging out');
+          this.currentUserSubject.next(null);
+          this.clearAllData();
+        }
       },
-      error: () => {
+      error: (error) => {
+        console.log('Auth check failed - user may be deleted:', error);
         this.currentUserSubject.next(null);
+        this.clearAllData();
       }
     });
   }
@@ -129,7 +138,26 @@ export class AuthService {
    */
   frontendLogout(): void {
     this.currentUserSubject.next(null);
-    // Optionally, clear localStorage/sessionStorage if used
+    this.clearAllData();
+  }
+
+  /**
+   * Clears all user data and cached information when user is deleted or logged out.
+   */
+  private clearAllData(): void {
+    console.log('Clearing all user data and cached information');
+    this.currentUserSubject.next(null);
+    
+    // Clear any cached data in localStorage/sessionStorage
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
+    
+    // Clear cart data
+    this.cartService.clearCartItems();
+    
+    // Clear any other cached data
+    localStorage.removeItem('cart');
+    sessionStorage.removeItem('cart');
   }
 
   isLoggedIn(): boolean {
@@ -140,7 +168,12 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  /**
+   * DEPRECATED: Use checkAdminAuthWithBackend() instead for database validation
+   * This method only checks frontend state and should not be used for security decisions
+   */
   isAdmin(): boolean {
+    console.warn('isAdmin() method is deprecated. Use checkAdminAuthWithBackend() for database validation.');
     return this.currentUserSubject.value?.role === 'admin';
   }
 
@@ -196,5 +229,88 @@ export class AuthService {
 
   getAllUsers() {
     return this.http.get<{ success: boolean, users: User[] }>('http://localhost:9000/api/auth/users', { withCredentials: true });
+  }
+
+  /**
+   * Forces a check to see if the current user still exists in the database.
+   * If user is deleted, clears all data and redirects to login.
+   */
+  forceCheckUserExists(): Observable<boolean> {
+    return this.http.get<any>(`${this.apiUrl}/check-auth`, { withCredentials: true }).pipe(
+      map(response => {
+        if (response && response.success && response.user) {
+          console.log('User still exists in database:', response.user.email);
+          return true;
+        } else {
+          console.log('User no longer exists in database - clearing data');
+          this.clearAllData();
+          return false;
+        }
+      }),
+      catchError((error) => {
+        console.log('User existence check failed - user may be deleted:', error);
+        this.clearAllData();
+        return of(false);
+      })
+    );
+  }
+
+  /**
+   * Checks authentication with the backend and returns an Observable<User|null>.
+   */
+  checkAuthWithBackend(): Observable<User | null> {
+    return this.http.get<any>(`${this.apiUrl}/check-auth`, { withCredentials: true }).pipe(
+      map(response => {
+        if (response && response.success && response.user) {
+          console.log('User authenticated via backend:', response.user.email);
+          return response.user;
+        } else {
+          console.log('No user data in backend response - user may be deleted');
+          this.clearAllData();
+          return null;
+        }
+      }),
+      catchError((error) => {
+        console.log('Backend auth check failed - user may be deleted:', error);
+        this.clearAllData();
+        return of(null);
+      })
+    );
+  }
+
+  /**
+   * Checks admin authentication with the backend and validates role from database.
+   * This method always checks the database and clears cached data if role has changed.
+   */
+  checkAdminAuthWithBackend(): Observable<{ user: User | null; isAdmin: boolean }> {
+    console.log('checkAdminAuthWithBackend called - forcing database check');
+    
+    // Clear any cached user data to force fresh validation
+    const currentUser = this.currentUserSubject.value;
+    if (currentUser) {
+      console.log('Clearing cached user data for fresh validation');
+      this.currentUserSubject.next(null);
+    }
+    
+    return this.http.get<any>(`${this.apiUrl}/check-admin-auth`, { withCredentials: true }).pipe(
+      map(response => {
+        console.log('Admin auth response:', response);
+        if (response && response.success && response.isAdmin) {
+          console.log('Admin validation successful for user:', response.user?.email);
+          this.currentUserSubject.next(response.user);
+          return { user: response.user, isAdmin: true };
+        }
+        console.log('Admin validation failed - user is not admin or user deleted');
+        // Clear any cached admin data
+        this.clearAllData();
+        return { user: null, isAdmin: false };
+      }),
+      catchError((error) => {
+        console.log('Admin auth check failed - user may be deleted:', error);
+        // Clear cached data on error
+        this.clearAllData();
+        return of({ user: null, isAdmin: false });
+      })
+    );
   }
 } 

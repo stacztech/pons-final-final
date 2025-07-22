@@ -261,11 +261,11 @@ export class CartComponent implements OnInit, OnDestroy {
 
   updateQuantity(item: CartItem, change: number) {
     const newQuantity = Math.max(1, Math.round(item.quantity + change));
-    this.cartService.updateQuantity(item.id, newQuantity);
+    this.cartService.updateQuantity(item.id, newQuantity, item.weight);
   }
 
   removeItem(item: CartItem) {
-    this.cartService.removeFromCart(item.id);
+    this.cartService.removeFromCart(item.id, item.weight);
   }
 
   clearCart() {
@@ -287,9 +287,9 @@ export class CartComponent implements OnInit, OnDestroy {
     if (!item) return;
     let quantity = parseInt(input.value, 10);
     if (!isNaN(quantity) && quantity >= 1) {
-      this.cartService.updateQuantity(item.id, quantity);
+      this.cartService.updateQuantity(item.id, quantity, item.weight);
     } else if (!isNaN(quantity) && quantity < 1) {
-      this.cartService.updateQuantity(item.id, 1);
+      this.cartService.updateQuantity(item.id, 1, item.weight);
     } else {
       input.value = item.quantity.toString();
     }

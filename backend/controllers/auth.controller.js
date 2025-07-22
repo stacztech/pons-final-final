@@ -1,5 +1,6 @@
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
+import mongoose from "mongoose";
 
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import {
@@ -54,12 +55,19 @@ export const signup = async (req, res) => {
 			user.isVerified = true;
 			await user.save();
 			await sendVerificationEmail(user.email, verificationToken);
-			return res.status(200).json({
+			return 			res.status(200).json({
 				success: true,
 				message: 'Account details updated. User is now verified. OTP sent to your email.',
 				user: {
-					...user._doc,
-					password: undefined,
+					_id: user._id,
+					email: user.email,
+					name: user.name,
+					phone: user.phone,
+					role: user.role,
+					lastLogin: user.lastLogin,
+					isVerified: user.isVerified,
+					createdAt: user.createdAt,
+					updatedAt: user.updatedAt
 				},
 			});
 		}
@@ -70,6 +78,7 @@ export const signup = async (req, res) => {
 			password: hashedPassword,
 			name,
 			phone,
+			role: 'user', // Set all new users as user
 			isVerified: true,
 			verificationToken,
 			verificationTokenExpiresAt,
@@ -80,8 +89,15 @@ export const signup = async (req, res) => {
 			success: true,
 			message: 'User created successfully and is now verified. OTP sent to your email.',
 			user: {
-				...user._doc,
-				password: undefined,
+				_id: user._id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				lastLogin: user.lastLogin,
+				isVerified: user.isVerified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt
 			},
 		});
 	} catch (error) {
@@ -111,8 +127,15 @@ export const verifyEmail = async (req, res) => {
 			success: true,
 			message: "OTP verified successfully, but user is not marked as verified.",
 			user: {
-				...user._doc,
-				password: undefined,
+				_id: user._id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				lastLogin: user.lastLogin,
+				isVerified: user.isVerified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt
 			},
 		});
 	} catch (error) {
@@ -142,8 +165,15 @@ export const login = async (req, res) => {
 			success: true,
 			message: "Logged in successfully",
 			user: {
-				...user._doc,
-				password: undefined,
+				_id: user._id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				lastLogin: user.lastLogin,
+				isVerified: user.isVerified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt
 			},
 		});
 	} catch (error) {
@@ -218,15 +248,111 @@ export const resetPassword = async (req, res) => {
 
 export const checkAuth = async (req, res) => {
 	try {
+		console.log('=== checkAuth called ===');
+		console.log('Requesting userId:', req.userId);
+		console.log('Request timestamp:', new Date().toISOString());
+		
 		const user = await User.findById(req.userId).select("-password");
+		console.log('User found in checkAuth:', user ? {
+			id: user._id,
+			email: user.email,
+			name: user.name,
+			role: user.role
+		} : 'null');
+		
 		if (!user) {
-			return res.status(400).json({ success: false, message: "User not found" });
+			console.log('❌ User not found in database - user may be deleted');
+			return res.status(401).json({ 
+				success: false, 
+				message: "User not found - account may have been deleted",
+				userDeleted: true
+			});
 		}
 
-		res.status(200).json({ success: true, user });
+		console.log('✅ User authenticated:', user.email);
+		res.status(200).json({ 
+			success: true, 
+			user: {
+				_id: user._id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				lastLogin: user.lastLogin,
+				isVerified: user.isVerified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt
+			}
+		});
 	} catch (error) {
-		console.log("Error in checkAuth ", error);
-		res.status(400).json({ success: false, message: error.message });
+		console.log("❌ Error in checkAuth:", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+export const checkAdminAuth = async (req, res) => {
+	try {
+		console.log('=== checkAdminAuth called ===');
+		console.log('Requesting userId:', req.userId);
+		console.log('Request timestamp:', new Date().toISOString());
+		
+		const user = await User.findById(req.userId).select("-password");
+		console.log('User found from database:', user ? {
+			id: user._id,
+			email: user.email,
+			name: user.name,
+			role: user.role,
+			roleType: typeof user.role
+		} : 'null');
+		
+		if (!user) {
+			console.log('❌ User not found in database');
+			return res.status(401).json({ success: false, message: "User not found" });
+		}
+
+		// More robust role checking
+		const userRole = user.role || user._doc?.role;
+		console.log('🔍 Role validation:');
+		console.log('  - User role from DB:', userRole);
+		console.log('  - Role type:', typeof userRole);
+		console.log('  - Is admin?', userRole === 'admin');
+		console.log('  - Raw user object:', JSON.stringify(user._doc || user, null, 2));
+		
+		if (userRole !== 'admin') {
+			console.log('❌ Access denied - user role is not admin');
+			return res.status(403).json({ 
+				success: false, 
+				message: "Access denied. Admin privileges required.",
+				isAdmin: false,
+				userRole: userRole,
+				userData: {
+					id: user._id,
+					email: user.email,
+					name: user.name,
+					role: userRole
+				}
+			});
+		}
+
+		console.log('✅ Admin access granted for user:', user.email);
+		res.status(200).json({ 
+			success: true, 
+			user: {
+				_id: user._id,
+				email: user.email,
+				name: user.name,
+				phone: user.phone,
+				role: user.role,
+				lastLogin: user.lastLogin,
+				isVerified: user.isVerified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt
+			},
+			isAdmin: true
+		});
+	} catch (error) {
+		console.log("❌ Error in checkAdminAuth:", error);
+		res.status(500).json({ success: false, message: error.message });
 	}
 };
 
@@ -274,7 +400,10 @@ export const getAllUsers = async (req, res) => {
 	try {
 		// Check if the requesting user is an admin
 		const requestingUser = await User.findById(req.userId);
+		console.log('Requesting user:', requestingUser);
+		
 		if (!requestingUser || requestingUser.role !== 'admin') {
+			console.log('Access denied - requesting user role:', requestingUser?.role);
 			return res.status(403).json({ 
 				success: false, 
 				message: "Access denied. Admin privileges required." 
@@ -283,6 +412,7 @@ export const getAllUsers = async (req, res) => {
 
 		// Get all users excluding password field
 		const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+		console.log('All users found:', users.map(u => ({ id: u._id, email: u.email, role: u.role })));
 
 		res.status(200).json({
 			success: true,
@@ -449,3 +579,212 @@ export const deleteUser = async (req, res) => {
 		res.status(500).json({ success: false, message: "Server error" });
 	}
 };
+
+// Temporary endpoint to check and fix user roles (remove in production)
+export const debugUserRoles = async (req, res) => {
+	try {
+		console.log('=== DEBUG USER ROLES ===');
+		
+		// Get all users
+		const users = await User.find({}).select('-password');
+		console.log('All users in database:');
+		users.forEach(user => {
+			console.log(`- ID: ${user._id}, Email: ${user.email}, Role: ${user.role}, Type: ${typeof user.role}`);
+			console.log(`  Raw user object:`, JSON.stringify(user._doc || user, null, 2));
+		});
+
+		// Check if any users have admin role
+		const adminUsers = users.filter(user => user.role === 'admin');
+		console.log(`Admin users found: ${adminUsers.length}`);
+		adminUsers.forEach(user => {
+			console.log(`- Admin: ${user.email} (${user._id})`);
+		});
+
+		// Check for users with undefined/null roles
+		const usersWithoutRole = users.filter(user => !user.role);
+		console.log(`Users without role: ${usersWithoutRole.length}`);
+		usersWithoutRole.forEach(user => {
+			console.log(`- No role: ${user.email} (${user._id})`);
+		});
+
+		// If no admin users, create one (for testing)
+		if (adminUsers.length === 0) {
+			console.log('No admin users found. Creating one for testing...');
+			const firstUser = users[0];
+			if (firstUser) {
+				firstUser.role = 'admin';
+				await firstUser.save();
+				console.log(`Made ${firstUser.email} an admin`);
+			}
+		}
+
+		res.status(200).json({
+			success: true,
+			message: "User roles debugged",
+			users: users.map(u => ({ 
+				id: u._id, 
+				email: u.email, 
+				role: u.role,
+				roleType: typeof u.role,
+				hasRole: !!u.role
+			})),
+			adminCount: adminUsers.length,
+			usersWithoutRole: usersWithoutRole.length
+		});
+	} catch (error) {
+		console.log("Error in debugUserRoles ", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+// Simple endpoint to add admin role to a user by email (for initial setup)
+export const addAdminRole = async (req, res) => {
+	try {
+		const { email } = req.body;
+		
+		if (!email) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Email is required" 
+			});
+		}
+
+		// Find user by email
+		const user = await User.findOne({ email });
+		if (!user) {
+			return res.status(404).json({ 
+				success: false, 
+				message: "User not found with this email" 
+			});
+		}
+
+		// Update user role to admin
+		user.role = 'admin';
+		await user.save();
+
+		console.log(`Made ${user.email} an admin`);
+
+		res.status(200).json({
+			success: true,
+			message: "User role updated to admin",
+			user: {
+				_id: user._id,
+				email: user.email,
+				name: user.name,
+				role: user.role
+			}
+		});
+	} catch (error) {
+		console.log("Error in addAdminRole ", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+// Temporary endpoint to delete a specific user by email (for testing)
+export const deleteUserByEmail = async (req, res) => {
+	try {
+		const { email } = req.body;
+		
+		if (!email) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "Email is required" 
+			});
+		}
+
+		// Find user by email
+		const user = await User.findOne({ email });
+		if (!user) {
+			return res.status(404).json({ 
+				success: false, 
+				message: "User not found with this email" 
+			});
+		}
+
+		// Delete user
+		await User.findByIdAndDelete(user._id);
+
+		console.log(`Deleted user: ${user.email} (${user._id})`);
+
+		res.status(200).json({
+			success: true,
+			message: "User deleted successfully",
+			deletedUser: {
+				_id: user._id,
+				email: user.email,
+				name: user.name
+			}
+		});
+	} catch (error) {
+		console.log("Error in deleteUserByEmail ", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+// Temporary endpoint to delete a specific user by ID (for testing)
+export const deleteUserById = async (req, res) => {
+	try {
+		const { userId } = req.params;
+		
+		if (!userId) {
+			return res.status(400).json({ 
+				success: false, 
+				message: "User ID is required" 
+			});
+		}
+
+		// Find user by ID
+		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(404).json({ 
+				success: false, 
+				message: "User not found with this ID" 
+			});
+		}
+
+		// Delete user
+		await User.findByIdAndDelete(userId);
+
+		console.log(`Deleted user by ID: ${user.email || 'No email'} (${user._id})`);
+
+		res.status(200).json({
+			success: true,
+			message: "User deleted successfully",
+			deletedUser: {
+				_id: user._id,
+				email: user.email,
+				name: user.name
+			}
+		});
+	} catch (error) {
+		console.log("Error in deleteUserById ", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+// Temporary endpoint to show database connection info
+export const getDatabaseInfo = async (req, res) => {
+	try {
+		const dbInfo = {
+			connectionString: process.env.MONGO_URI ? 'Set (hidden for security)' : 'Not set',
+			databaseName: User.db.name,
+			collectionName: User.collection.name,
+			totalUsers: await User.countDocuments(),
+			connectionState: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+			host: mongoose.connection.host || 'Unknown',
+			port: mongoose.connection.port || 'Unknown',
+			database: mongoose.connection.name || 'Unknown'
+		};
+
+		res.status(200).json({
+			success: true,
+			message: "Database connection information",
+			databaseInfo: dbInfo
+		});
+	} catch (error) {
+		console.log("Error in getDatabaseInfo ", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+};
+
+

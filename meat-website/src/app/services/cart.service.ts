@@ -56,16 +56,16 @@ export class CartService {
     });
   }
 
-  updateQuantity(itemId: string, quantity: number) {
-    this.http.post<any>(`${this.apiUrl}/update`, { id: itemId, quantity }, { withCredentials: true }).subscribe(res => {
+  updateQuantity(itemId: string, quantity: number, weight: string) {
+    this.http.post<any>(`${this.apiUrl}/update`, { id: itemId, quantity, weight }, { withCredentials: true }).subscribe(res => {
       this.cartItems = (res.cart?.items || []).map((i: any) => ({ ...i, id: i.id }));
       this.cartItemsSubject.next(this.cartItems);
       console.log('CartService updateQuantity:', this.cartItems);
     });
   }
 
-  removeFromCart(itemId: string) {
-    this.http.post<any>(`${this.apiUrl}/remove`, { id: itemId }, { withCredentials: true }).subscribe(res => {
+  removeFromCart(itemId: string, weight?: string) {
+    this.http.post<any>(`${this.apiUrl}/remove`, { id: itemId, weight }, { withCredentials: true }).subscribe(res => {
       this.cartItems = (res.cart?.items || []).map((i: any) => ({ ...i, id: i.id }));
       this.cartItemsSubject.next(this.cartItems);
       console.log('CartService removeFromCart:', this.cartItems);
@@ -73,10 +73,7 @@ export class CartService {
   }
 
   clearCart() {
-    this.http.post<any>(`${this.apiUrl}/clear`, {}, { withCredentials: true }).subscribe(res => {
-      this.cartItems = [];
-      this.cartItemsSubject.next(this.cartItems);
-    });
+    return this.http.post<any>(`${this.apiUrl}/clear`, {}, { withCredentials: true });
   }
 
   getCartItems(): CartItem[] {
@@ -135,10 +132,6 @@ export class CartService {
   }
 
   addMultipleToCart(items: CartItem[]) {
-    this.http.post<any>(`${this.apiUrl}/add-multiple`, { items }, { withCredentials: true }).subscribe(res => {
-      this.cartItems = (res.cart?.items || []).map((i: any) => ({ ...i, id: i.id }));
-      this.cartItemsSubject.next(this.cartItems);
-      console.log('CartService addMultipleToCart:', this.cartItems);
-    });
+    return this.http.post<any>(`${this.apiUrl}/add-multiple`, { items }, { withCredentials: true });
   }
 }

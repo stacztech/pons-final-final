@@ -68,7 +68,7 @@ interface ChickenProduct {
                   <button 
                     class="btn-buy-now" 
                     [disabled]="!hasSelectedWeight(product)"
-                    (click)="addToCart(product, true)">
+                    (click)="buyNow(product)">
                     Buy Now
                   </button>
                   <!-- Add to Cart Button -->
@@ -313,6 +313,9 @@ interface ChickenProduct {
     }
 
     @media (max-width: 768px) {
+      .container.my-5 {
+        padding-top: 64px !important;
+      }
       .product-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 12px;
@@ -571,14 +574,52 @@ export class ChickenComponent implements OnInit {
       return;
     }
     if (this.authService.isLoggedIn()) {
-      this.cartService.addMultipleToCart(itemsToAdd);
-      product.quantity1kg = 0;
-      product.quantity500g = 0;
-      product.isAddedToCart = true;
-      setTimeout(() => { product.isAddedToCart = false; }, 1500);
+      this.cartService.addMultipleToCart(itemsToAdd).subscribe({
+        next: () => {
+          this.cartService.fetchCart();
+          product.quantity1kg = 0;
+          product.quantity500g = 0;
+          product.isAddedToCart = true;
+          setTimeout(() => { product.isAddedToCart = false; }, 1500);
+        },
+        error: () => {
+          // Optionally handle error
+        }
+      });
     } else {
       this.cartService.savePendingCartItem(itemsToAdd[0]);
       this.router.navigate(['/login']);
+    }
+  }
+
+  buyNow(product: ChickenProduct) {
+    // Collect all selected weights
+    const itemsToBuy: CartItem[] = [];
+    if (product.quantity1kg > 0) {
+      itemsToBuy.push({
+        id: `${product.id}-1kg`,
+        name: product.name,
+        image: product.image,
+        weight: '1 kg',
+        price: product.price1kg,
+        quantity: product.quantity1kg
+      });
+    }
+    if (product.quantity500g > 0) {
+      itemsToBuy.push({
+        id: `${product.id}-500g`,
+        name: product.name,
+        image: product.image,
+        weight: '1/2 kg',
+        price: product.price500g,
+        quantity: product.quantity500g
+      });
+    }
+    if (itemsToBuy.length > 0) {
+      localStorage.setItem('buyNowItem', JSON.stringify(itemsToBuy));
+      product.quantity1kg = 0;
+      product.quantity500g = 0;
+      this.router.navigate(['/checkout']);
     }
   }
 

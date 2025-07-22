@@ -31,10 +31,6 @@
             (click)="activeSection = 'settings'">
             <i class="bi bi-gear"></i> Account Settings
         </li>
-        <li [class.active]="activeSection === 'reviews'"
-            (click)="activeSection = 'reviews'">
-            <i class="bi bi-star"></i> Order Reviews
-        </li>
       </ul>
     </div>
 
@@ -74,41 +70,8 @@
             <div class="order-footer">
               <div class="order-total">Total: ₹{{ order.total }}</div>
               <div class="order-actions">
-                <button class="btn-reorder" (click)="reorder(order)">Reorder</button>
-                <button *ngIf="order.status === 'delivered'" 
-                        class="btn-review" 
-                        (click)="writeReview(order)">
-                  {{ getReviewButtonText(order.id) }}
-                </button>
+                <!-- Removed the review button as requested -->
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reviews Section -->
-      <div *ngIf="activeSection === 'reviews'" class="reviews-section">
-        <h3>Order Reviews</h3>
-        <div *ngIf="reviews.length === 0" class="no-reviews">No reviews yet.</div>
-        <div class="reviews-list">
-          <div *ngFor="let review of reviews" class="review-card">
-            <div class="review-header">
-              <div class="review-order">Order #{{ review.orderId }}</div>
-              <div class="review-date">{{ review.date | date:'mediumDate' }}</div>
-            </div>
-            <div class="review-rating">
-              <span *ngFor="let star of [1,2,3,4,5]" 
-                    class="star" 
-                    [ngClass]="{'filled': star <= review.rating}">
-                <i class="bi bi-star-fill"></i>
-              </span>
-            </div>
-            <div class="review-content">
-              <p>{{ review.comment }}</p>
-            </div>
-            <div class="review-actions">
-              <button class="btn-edit" (click)="editReview(review)">Edit Review</button>
-              <button class="btn-delete" (click)="deleteReview(review)">Delete Review</button>
             </div>
           </div>
         </div>
@@ -200,65 +163,5 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Review Form Modal -->
-<div *ngIf="showReviewForm" class="review-form-overlay" (click)="cancelReviewForm()">
-  <div class="review-form-container" (click)="$event.stopPropagation()">
-    <h4>{{ editingReview ? 'Edit Review' : 'Write a Review' }} for Order #{{ currentOrderForReview?.id }}</h4>
-    
-    <!-- Error Message -->
-    <div *ngIf="errorMessage" class="alert alert-danger">
-      {{ errorMessage }}
-    </div>
-
-    <form [formGroup]="reviewForm" (ngSubmit)="submitReviewForm()">
-      <div class="form-group">
-        <label>Rating:</label>
-        <div class="star-rating">
-          <span *ngFor="let star of [1,2,3,4,5]" 
-                class="star" 
-                [ngClass]="{'filled': star <= reviewFormControls['rating'].value}"
-                (click)="reviewFormControls['rating'].setValue(star)">
-            <i class="bi bi-star-fill"></i>
-          </span>
-        </div>
-        <div *ngIf="reviewFormControls['rating'].invalid && reviewFormControls['rating'].touched" 
-             class="text-danger">
-          Please select a rating
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Comment:</label>
-        <textarea 
-          formControlName="comment" 
-          rows="4" 
-          placeholder="Share your experience with this order..."
-          [ngClass]="{'is-invalid': reviewFormControls['comment'].invalid && reviewFormControls['comment'].touched}">
-        </textarea>
-        <div *ngIf="reviewFormControls['comment'].invalid && reviewFormControls['comment'].touched" 
-             class="text-danger">
-          <span *ngIf="reviewFormControls['comment'].errors?.['required']">Comment is required</span>
-          <span *ngIf="reviewFormControls['comment'].errors?.['minlength']">Comment must be at least 10 characters</span>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" 
-                class="btn-save" 
-                [disabled]="reviewForm.invalid || isLoading">
-          <span *ngIf="!isLoading">{{ editingReview ? 'Update Review' : 'Submit Review' }}</span>
-          <span *ngIf="isLoading" class="spinner-border spinner-border-sm" role="status"></span>
-        </button>
-        <button type="button" 
-                class="btn-cancel" 
-                (click)="cancelReviewForm()"
-                [disabled]="isLoading">
-          Cancel
-        </button>
-      </div>
-    </form>
   </div>
 </div> 

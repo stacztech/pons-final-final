@@ -1,4 +1,4 @@
-<div class="admin-dashboard">
+<div class="admin-dashboard" *ngIf="isAdmin">
   <nav class="admin-nav">
     <button [class.active]="activeTab === 'customers'" (click)="activeTab = 'customers'">Customers</button>
     <button [class.active]="activeTab === 'orders'" (click)="activeTab = 'orders'">Orders</button>
@@ -6,5 +6,13 @@
   <div class="admin-content">
     <app-admin-customers *ngIf="activeTab === 'customers'"></app-admin-customers>
     <app-admin-orders *ngIf="activeTab === 'orders'"></app-admin-orders>
+  </div>
+</div>
+
+<div *ngIf="!isAdmin" class="access-denied">
+  <div class="access-denied-content">
+    <h2>Access Denied</h2>
+    <p>You don't have permission to access the admin dashboard.</p>
+    <button class="btn btn-primary" (click)="goToHome()">Go to Home</button>
   </div>
 </div> 

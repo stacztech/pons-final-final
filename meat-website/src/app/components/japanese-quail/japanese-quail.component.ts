@@ -312,6 +312,9 @@ interface JapaneseQuailProduct {
     }
 
     @media (max-width: 768px) {
+      .container.my-5 {
+        padding-top: 64px !important;
+      }
       .product-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 12px;
@@ -410,11 +413,18 @@ export class JapaneseQuailComponent implements OnInit {
     }
     if (itemsToAdd.length === 0) return;
     if (this.authService.isLoggedIn()) {
-      this.cartService.addMultipleToCart(itemsToAdd);
-      product.quantity1kg = 0;
-      product.quantity500g = 0;
-      product.isAddedToCart = true;
-      setTimeout(() => { product.isAddedToCart = false; }, 1500);
+      this.cartService.addMultipleToCart(itemsToAdd).subscribe({
+        next: () => {
+          this.cartService.fetchCart();
+          product.quantity1kg = 0;
+          product.quantity500g = 0;
+          product.isAddedToCart = true;
+          setTimeout(() => { product.isAddedToCart = false; }, 1500);
+        },
+        error: () => {
+          // Optionally handle error
+        }
+      });
     } else {
       this.cartService.savePendingCartItem(itemsToAdd[0]);
       this.router.navigate(['/login']);
@@ -422,10 +432,10 @@ export class JapaneseQuailComponent implements OnInit {
   }
 
   buyNow(product: JapaneseQuailProduct) {
-    if (!this.hasSelectedWeight(product)) return;
-    const itemsToAdd: CartItem[] = [];
+    // Collect all selected weights
+    const itemsToBuy: CartItem[] = [];
     if (product.quantity1kg > 0) {
-      itemsToAdd.push({
+      itemsToBuy.push({
         id: `${product.id}-1kg`,
         name: product.name,
         image: product.image,
@@ -435,7 +445,7 @@ export class JapaneseQuailComponent implements OnInit {
       });
     }
     if (product.quantity500g > 0) {
-      itemsToAdd.push({
+      itemsToBuy.push({
         id: `${product.id}-500g`,
         name: product.name,
         image: product.image,
@@ -444,11 +454,12 @@ export class JapaneseQuailComponent implements OnInit {
         quantity: product.quantity500g
       });
     }
-    if (itemsToAdd.length === 0) return;
-    this.cartService.setBuyNowItem(itemsToAdd);
-    product.quantity1kg = 0;
-    product.quantity500g = 0;
-    this.router.navigate(['/checkout']);
+    if (itemsToBuy.length > 0) {
+      localStorage.setItem('buyNowItem', JSON.stringify(itemsToBuy));
+      product.quantity1kg = 0;
+      product.quantity500g = 0;
+      this.router.navigate(['/checkout']);
+    }
   }
 
   increaseQuantity(product: JapaneseQuailProduct, weightType: '1kg' | '500g') {

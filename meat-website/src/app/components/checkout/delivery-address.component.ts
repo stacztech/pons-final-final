@@ -242,6 +242,9 @@ import { Output, EventEmitter, Input } from '@angular/core';
       .checkout-content {
         grid-template-columns: 1fr;
       }
+      .checkout-container {
+        padding-top: 64px;
+      }
     }
   `]
 })
@@ -400,6 +403,8 @@ export class DeliveryAddressComponent implements OnInit {
           if (response && response.address) {
             this.selectedAddressId = response.address.id;
             this.addressSelected.emit(response.address);
+            // Reload addresses to update the UI
+            this.loadAddresses();
           } else {
             this.loadAddresses();
           }
@@ -419,6 +424,8 @@ export class DeliveryAddressComponent implements OnInit {
           if (response && response.address) {
             this.selectedAddressId = response.address.id;
             this.addressSelected.emit(response.address);
+            // Reload addresses to update the UI
+            this.loadAddresses();
           } else {
             this.loadAddresses();
           }

@@ -100,13 +100,23 @@ export class AdminLoginComponent {
     this.isLoading = true;
     this.authService.login(this.email, this.password).subscribe({
       next: (res) => {
-        if (res.user.role === 'admin') {
-          this.router.navigate(['/admin']);
-        } else {
-          this.error = 'Access denied: Not an admin account.';
-          this.authService.logout();
-        }
-        this.isLoading = false;
+        // After login, validate admin role from database
+        this.authService.checkAdminAuthWithBackend().subscribe({
+          next: (adminResult) => {
+            if (adminResult.isAdmin) {
+              this.router.navigate(['/admin']);
+            } else {
+              this.error = 'Access denied: Not an admin account.';
+              this.authService.logout();
+            }
+            this.isLoading = false;
+          },
+          error: (adminErr) => {
+            this.error = 'Access denied: Admin validation failed.';
+            this.authService.logout();
+            this.isLoading = false;
+          }
+        });
       },
       error: (err) => {
         this.error = err.message || 'Login failed';

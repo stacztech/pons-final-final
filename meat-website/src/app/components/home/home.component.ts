@@ -1268,7 +1268,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       image: pack.image,
       isCombo: true
     };
-    this.cartService.setBuyNowItem([cartItem]);
+    localStorage.setItem('buyNowItem', JSON.stringify([cartItem]));
     this.router.navigate(['/checkout']);
   }
 

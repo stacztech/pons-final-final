@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -232,7 +232,7 @@ import { DeliveryAddressComponent } from './delivery-address.component';
       .order-summary-col { order: 2; display: none !important; }
       .main-checkout-col { order: 1; }
       .container.my-5 {
-        padding: 0.5rem;
+        padding: 64px 0.5rem 0.5rem 0.5rem !important;
       }
       .progress-steps {
         flex-direction: column;
@@ -267,7 +267,7 @@ import { DeliveryAddressComponent } from './delivery-address.component';
     }
   `]
 })
-export class CheckoutComponent implements OnInit {
+export class CheckoutComponent implements OnInit, OnDestroy {
   currentStep = 1;
   selectedAddress: any = null;
   paymentMethod: string = '';
@@ -275,6 +275,13 @@ export class CheckoutComponent implements OnInit {
   errorMessage: string = '';
   buyNowItems: CartItem[] | null = null;
   orderItems: CartItem[] = [];
+  isBuyNow: boolean = false;
+  private orderPlaced = false;
+  private clearBuyNowIfNotOrdered = () => {
+    if (!this.orderPlaced) {
+      localStorage.removeItem('buyNowItem');
+    }
+  };
 
   constructor(
     private cartService: CartService,
@@ -284,28 +291,69 @@ export class CheckoutComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
+  // --- Persistent Checkout State ---
+  private saveCheckoutState() {
+    const state = {
+      currentStep: this.currentStep,
+      selectedAddress: this.selectedAddress,
+      paymentMethod: this.paymentMethod,
+      orderItems: this.orderItems,
+    };
+    localStorage.setItem('checkoutState', JSON.stringify(state));
+  }
+
+  private restoreCheckoutState() {
+    const saved = localStorage.getItem('checkoutState');
+    if (saved) {
+      const state = JSON.parse(saved);
+      this.currentStep = state.currentStep || 1;
+      this.selectedAddress = state.selectedAddress || null;
+      this.paymentMethod = state.paymentMethod || '';
+      this.orderItems = state.orderItems || [];
+      return true;
+    }
+    return false;
+  }
+
+  private clearCheckoutState() {
+    localStorage.removeItem('checkoutState');
+  }
+
   ngOnInit() {
-    // Check authentication on load
+    console.log('CheckoutComponent ngOnInit');
     this.authService.checkAuthentication();
-    this.buyNowItems = this.cartService.getBuyNowItem();
-    if (this.buyNowItems) {
-      this.orderItems = this.buyNowItems;
+    const buyNowItemStr = localStorage.getItem('buyNowItem');
+    if (buyNowItemStr) {
+      const parsedItems = JSON.parse(buyNowItemStr);
+      // Handle both single item and array of items
+      this.orderItems = Array.isArray(parsedItems) ? parsedItems : [parsedItems];
+      this.isBuyNow = true;
+      console.log('Buy Now items loaded:', this.orderItems);
     } else {
+      this.cartService.fetchCart();
       this.cartService.cartItems$.subscribe(items => {
         this.orderItems = items;
         if (this.orderItems.length === 0) {
           this.router.navigate(['/cart']);
         }
+        this.saveCheckoutState();
       });
+      this.isBuyNow = false;
     }
-    // If not using buyNowItem, check immediately for empty cart
-    if (!this.buyNowItems && this.cartService.getCartItems().length === 0) {
-      this.router.navigate(['/cart']);
-    }
+    window.addEventListener('beforeunload', this.clearBuyNowIfNotOrdered);
+  }
+
+  ngOnDestroy() {
+    this.clearBuyNowIfNotOrdered();
+    window.removeEventListener('beforeunload', this.clearBuyNowIfNotOrdered);
   }
 
   onAddressSelected(address: any) {
+    console.log('Address selected:', address);
     this.selectedAddress = address;
+    this.saveCheckoutState();
+    // Force change detection to update UI immediately
+    this.cdr.detectChanges();
   }
 
   getOrderItems(): CartItem[] {
@@ -327,11 +375,13 @@ export class CheckoutComponent implements OnInit {
     } else if (this.currentStep === 2 && this.paymentMethod) {
       this.currentStep = 3;
     }
+    this.saveCheckoutState();
   }
 
   prevStep() {
     if (this.currentStep > 1) {
       this.currentStep--;
+      this.saveCheckoutState();
     }
   }
 
@@ -355,8 +405,15 @@ export class CheckoutComponent implements OnInit {
         paymentMethod: this.paymentMethod
       };
       this.ordersService.placeOrder(orderData).subscribe(response => {
-        if (this.buyNowItems) this.cartService.clearBuyNowItem();
-        this.cartService.clearCart();
+        this.orderPlaced = true;
+        if (this.isBuyNow) {
+          localStorage.removeItem('buyNowItem');
+        } else {
+          this.cartService.clearCart().subscribe(() => {
+            this.cartService.fetchCart();
+          });
+        }
+        this.clearCheckoutState(); // Clear state on order success
         alert('Order placed successfully!');
         this.router.navigate(['/order-success', response.order.id]);
       });
@@ -377,47 +434,74 @@ export class CheckoutComponent implements OnInit {
     let newQuantity = Math.max(min, Math.round(item.quantity + change));
     console.log('[updateQuantity] newQuantity:', newQuantity);
     if (newQuantity < min) newQuantity = min;
-    if (this.buyNowItems && this.buyNowItems.some(i => i.id === item.id)) {
-      // update the matching item in buyNowItems
-      this.buyNowItems = this.buyNowItems.map(i => i.id === item.id ? { ...i, quantity: newQuantity } : i);
-      this.cartService.setBuyNowItem(this.buyNowItems);
-      this.orderItems = this.buyNowItems;
-    } else {
-      if (newQuantity >= min) {
-        this.cartService.updateQuantity(item.id, newQuantity);
-        console.log('[updateQuantity] cartService.updateQuantity called:', item.id, newQuantity);
-        // Force refresh cart after update
-        setTimeout(() => {
-          this.cartService.fetchCart();
-        }, 300);
+
+    const itemInOrder = this.orderItems.find(i => i.id === item.id && i.weight === item.weight);
+
+    if (itemInOrder) {
+      itemInOrder.quantity = newQuantity;
+
+      if (this.isBuyNow) {
+        localStorage.setItem('buyNowItem', JSON.stringify(this.orderItems));
       } else {
-        this.removeItem(item);
+        this.cartService.updateQuantity(item.id, newQuantity, item.weight);
+        console.log('[updateQuantity] cartService.updateQuantity called:', item.id, newQuantity);
+        setTimeout(() => this.cartService.fetchCart(), 300);
       }
+    } else {
+      this.removeItem(item);
     }
+    this.saveCheckoutState();
   }
 
   onQuantityChange(item: CartItem, event: Event) {
     const input = event.target as HTMLInputElement;
     const min = this.getMin(item);
-    const quantity = parseInt(input.value, 10);
-    console.log('[onQuantityChange] item:', item, 'input value:', input.value, 'parsed quantity:', quantity);
-    if (!isNaN(quantity) && quantity >= min) {
-      this.updateQuantity(item, quantity - item.quantity);
-    } else if (!isNaN(quantity) && quantity < min) {
-      this.updateQuantity(item, min - item.quantity);
+    let quantity = parseInt(input.value, 10);
+    
+    if (isNaN(quantity) || quantity < min) {
+      quantity = min;
       input.value = min.toString();
-    } else {
-      input.value = item.quantity.toString();
     }
+    
+    const itemInOrder = this.orderItems.find(i => i.id === item.id && i.weight === item.weight);
+    
+    if (itemInOrder) {
+      itemInOrder.quantity = quantity;
+      
+      if (this.isBuyNow) {
+        localStorage.setItem('buyNowItem', JSON.stringify(this.orderItems));
+      } else {
+        this.cartService.updateQuantity(item.id, quantity, item.weight);
+        setTimeout(() => this.cartService.fetchCart(), 300);
+      }
+    }
+    this.saveCheckoutState();
   }
 
   removeItem(item: CartItem) {
-    if (this.buyNowItems && this.buyNowItems.some(i => i.id === item.id)) {
-      this.cartService.clearBuyNowItem();
-      this.buyNowItems = null;
+    if (this.isBuyNow) {
+      // For Buy Now items, remove from local orderItems array
+      this.orderItems = this.orderItems.filter(i => !(i.id === item.id && i.weight === item.weight));
+      
+      // Update localStorage with remaining items
+      if (this.orderItems.length === 0) {
+        localStorage.removeItem('buyNowItem');
+        this.router.navigate(['/cart']); // Redirect to cart if no items left
+      } else {
+        localStorage.setItem('buyNowItem', JSON.stringify(this.orderItems));
+      }
+      
+      console.log('Buy Now item removed:', item);
+      console.log('Remaining items:', this.orderItems);
     } else {
-      this.cartService.removeFromCart(item.id);
+      // For cart items, remove from backend cart
+      this.cartService.removeFromCart(item.id, item.weight);
+      // Force refresh cart after removal
+      setTimeout(() => {
+        this.cartService.fetchCart();
+      }, 300);
     }
+    this.saveCheckoutState();
   }
 
   addItem() {

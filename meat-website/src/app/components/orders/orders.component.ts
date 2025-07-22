@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { OrdersService, Order } from '../../services/orders.service';
 import { AuthService } from '../../services/auth.service';
+import { CartService } from '../../services/cart.service';
+import { switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-orders',
@@ -25,101 +27,24 @@ import { AuthService } from '../../services/auth.service';
       </div>
 
       <div *ngIf="!isLoading && orders.length > 0" class="orders-list">
-        <div *ngFor="let order of orders" class="card mb-4">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-0">Order #{{ order.id }}</h5>
-              <small class="text-muted">{{ order.orderDate | date:'medium' }}</small>
+        <div *ngFor="let order of orders" class="order-card">
+          <div class="order-header">
+            <div class="order-id">Order #{{ order.id }}</div>
+            <div class="order-date">Expected Delivery: {{ order.expectedDeliveryDate | date:'mediumDate' }}</div>
+            <div class="order-status" [ngClass]="order.status.toLowerCase()">
+              {{ order.status }}
             </div>
-            <span [class]="'badge ' + getStatusBadgeClass(order.status)">
-              {{ order.status | titlecase }}
-            </span>
           </div>
-
-          <div class="card-body">
-            <!-- Order Items -->
-            <div class="mb-4">
-              <h6>Items</h6>
-              <div class="table-responsive">
-                <table class="table table-borderless">
-                  <tbody>
-                    <tr *ngFor="let item of order.items">
-                      <td style="width: 80px">
-                        <img [src]="item.image" [alt]="item.name" class="img-fluid rounded">
-                      </td>
-                      <td>
-                        <h6 class="mb-0">{{ item.name }}</h6>
-                        <small>{{ item.weight }}</small>
-                      </td>
-                      <td class="text-end">
-                        <div>₹{{ item.price }} × {{ item.quantity }}</div>
-                        <strong>₹{{ item.price * item.quantity }}</strong>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+          <div class="order-items">
+            <div *ngFor="let item of order.items" class="order-item">
+              <span>{{ item.name }}</span>
+              <span>{{ item.quantity }}x</span>
+              <span>₹{{ item.price }}</span>
             </div>
-
-            <!-- Delivery Details -->
-            <div class="mb-4">
-              <h6>Delivery Details</h6>
-              <div class="card bg-light">
-                <div class="card-body">
-                  <p class="mb-1"><strong>{{ order.deliveryDetails.fullName }}</strong></p>
-                  <p class="mb-1">{{ order.deliveryDetails.phoneNumber }}</p>
-                  <p class="mb-1">{{ order.deliveryDetails.addressLine1 }}</p>
-                  <p *ngIf="order.deliveryDetails.addressLine2" class="mb-1">
-                    {{ order.deliveryDetails.addressLine2 }}
-                  </p>
-                  <p class="mb-1">
-                    {{ order.deliveryDetails.city }}, {{ order.deliveryDetails.state }}
-                  </p>
-                  <p class="mb-0">PIN: {{ order.deliveryDetails.pincode }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Order Summary -->
-            <div class="mb-4">
-              <h6>Order Summary</h6>
-              <div class="d-flex justify-content-between">
-                <span>Total Amount</span>
-                <strong>₹{{ order.total }}</strong>
-              </div>
-              <div class="d-flex justify-content-between">
-                <span>Payment Method</span>
-                <span>{{ order.paymentMethod | titlecase }}</span>
-              </div>
-              <div class="d-flex justify-content-between">
-                <span>Order Date</span>
-                <span>{{ order.orderDate | date:'mediumDate' }}</span>
-              </div>
-              <div *ngIf="order.expectedDeliveryDate" class="d-flex justify-content-between">
-                <span>Expected Delivery</span>
-                <span>{{ order.expectedDeliveryDate | date:'mediumDate' }}</span>
-              </div>
-            </div>
-
-            <!-- Admin Actions -->
-            <div *ngIf="isAdmin && order.status !== 'delivered'">
-              <button class="btn btn-success" (click)="markAsDelivered(order.id)">Mark as Delivered</button>
-            </div>
-
-            <!-- User Actions -->
-            <div *ngIf="!isAdmin && ['pending', 'processing'].includes(order.status)">
-              <button 
-                class="btn btn-danger"
-                (click)="cancelOrder(order.id)"
-                [disabled]="isCancelling"
-              >
-                {{ isCancelling ? 'Cancelling...' : 'Cancel Order' }}
-              </button>
-            </div>
-
-            <!-- Show review button if delivered -->
-            <div *ngIf="order.status === 'delivered'" class="mt-2">
-              <button class="btn btn-primary" (click)="goToReview(order.id)">Write a Review</button>
+          </div>
+          <div class="order-footer">
+            <div class="order-total">Total: ₹{{ order.total }}</div>
+            <div class="order-actions">
             </div>
           </div>
         </div>
@@ -128,13 +53,100 @@ import { AuthService } from '../../services/auth.service';
   `,
   styles: [`
     .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
       max-width: 800px;
       margin: 0 auto;
+    }
+    .order-card {
+      background: #fafbfc;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .order-id {
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    .order-date {
+      font-size: 0.95rem;
+      color: #888;
+    }
+    .order-status {
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-transform: capitalize;
+      background: #f0f0f0;
+      color: #2c3e50;
+    }
+    .order-status.delivered {
+      background: #e8f5e9;
+      color: #00A642;
+    }
+    .order-status.pending {
+      background: #fff3cd;
+      color: #f8b500;
+    }
+    .order-items {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1rem;
+      color: #444;
+    }
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .order-total {
+      font-weight: 600;
+      color: #E31837;
+    }
+    .order-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-reorder, .btn-review {
+      background: #E31837;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 14px;
+      font-size: 0.98rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-review {
+      background: #f8b500;
+      color: #fff;
+    }
+    .btn-reorder:hover, .btn-review:hover {
+      opacity: 0.9;
     }
   `]
 })
 export class OrdersComponent implements OnInit {
   orders: Order[] = [];
+  errorMessage: string | null = null;
   isLoading = true;
   isCancelling = false;
   isAdmin = false;
@@ -142,12 +154,37 @@ export class OrdersComponent implements OnInit {
   constructor(
     private ordersService: OrdersService,
     private authService: AuthService,
+    private cartService: CartService,
     private router: Router
   ) {}
 
   ngOnInit() {
-    this.isAdmin = this.authService.isAdmin();
-    this.loadOrders();
+    this.isLoading = true;
+    this.ordersService.getOrders().subscribe(
+      (response: any) => {
+        // Support both { orders: [...] } and [...] directly
+        const ordersArray = Array.isArray(response)
+          ? response
+          : Array.isArray(response.orders)
+            ? response.orders
+            : [];
+        this.orders = ordersArray.map((order: any) => ({
+          ...order,
+          id: order.id || order._id,
+          items: order.items || [],
+          expectedDeliveryDate: order.expectedDeliveryDate || order.deliveryDate || '',
+          status: order.status || 'pending',
+          total: order.total || order.amount || 0
+        }));
+        console.log('Fetched orders:', this.orders);
+        this.isLoading = false;
+      },
+      err => {
+        this.isLoading = false;
+        this.errorMessage = 'Failed to load orders.';
+        console.error('Error fetching orders:', err);
+      }
+    );
   }
 
   private loadOrders() {
@@ -193,10 +230,6 @@ export class OrdersComponent implements OnInit {
       'cancelled': 'bg-danger'
     };
     return 'badge ' + (classes[status] || 'bg-secondary');
-  }
-
-  goToReview(orderId: string) {
-    this.router.navigate(['/profile'], { queryParams: { reviewOrderId: orderId } });
   }
 
   markAsDelivered(orderId: string) {

@@ -50,4 +50,48 @@
   .admin-content {
     padding: 6px;
   }
+}
+
+.access-denied {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 20px;
+}
+
+.access-denied-content {
+  text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  max-width: 400px;
+}
+
+.access-denied-content h2 {
+  color: #E31837;
+  margin-bottom: 16px;
+  font-size: 1.8rem;
+}
+
+.access-denied-content p {
+  color: #666;
+  margin-bottom: 24px;
+  font-size: 1.1rem;
+}
+
+.access-denied-content .btn {
+  background: #E31837;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.access-denied-content .btn:hover {
+  background: #c41530;
 } 

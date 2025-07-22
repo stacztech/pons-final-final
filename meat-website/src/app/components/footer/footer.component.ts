@@ -80,12 +80,16 @@ import { RouterLink } from '@angular/router';
       
 
       <!-- Copyright -->
-      <div class="footer-bottom">
-        <div class="container">
-          <p>&copy; 2024 Pons Broilers. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
+<div class="footer-bottom">
+  <div class="container">
+    <p>&copy; 2024 Pons Broilers. All rights reserved.</p>
+    <p class="developed-by">
+      Developed by 
+      <img src="assets/images/stacZ.png" alt="StacZ Logo" class="stacz-logo">
+    </p>
+  </div>
+</div>
+
   `,
   styles: [`
     .footer {
@@ -301,6 +305,22 @@ import { RouterLink } from '@angular/router';
         margin-right: 0;
       }
     }
+      .developed-by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #b0b0b0;
+  margin-top: 5px;
+}
+
+.stacz-logo {
+  height: 36px;  /* Increase or decrease as needed */
+  width: auto;   /* Optional: set width explicitly like width: 100px; */
+  object-fit: contain;
+}
+
   `]
 })
 export class FooterComponent {

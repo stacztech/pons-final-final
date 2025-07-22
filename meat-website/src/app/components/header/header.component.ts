@@ -1,17 +1,18 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef, ChangeDetectionStrategy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { CartService, CartItem } from '../../services/cart.service';
 import { SearchService, SearchResult } from '../../services/search.service';
-import { Observable, Subject, BehaviorSubject, of } from 'rxjs';
+import { Observable, Subject, BehaviorSubject, of, Subscription } from 'rxjs';
 import { map, filter, switchMap, takeUntil, debounceTime, distinctUntilChanged, catchError, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-header',
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <nav class="navbar navbar-expand-lg navbar-light bg-white">
       <div class="container">
@@ -140,8 +141,8 @@ import { map, filter, switchMap, takeUntil, debounceTime, distinctUntilChanged, 
             <li class="nav-item">
               <a class="nav-link cart-link" (click)="navigateTo('/cart', $event)">
                 <i class="bi bi-cart3"></i>
-                <div class="cart-info" *ngIf="cartService.getCartItemsCount() > 0">
-                  <span class="items-count">{{ cartService.getCartItemsCount() }} items</span>
+                <div class="cart-info" *ngIf="cartCount > 0">
+                  <span class="items-count">{{ cartCount }} items</span>
                 </div>
               </a>
             </li>
@@ -633,12 +634,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isMobileMenuOpen = false;
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
+  cartCount = 0;
+  private cartSubscription!: Subscription;
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.activeDropdown = null;
+      this.isMobileMenuOpen = false;
+      this.hideResults();
+      this.cdr.markForCheck();
+    }
+  }
 
   constructor(
     private searchService: SearchService,
     public cartService: CartService,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private elementRef: ElementRef
   ) {
     this.popularSearches = this.searchService.getPopularSearches();
 
@@ -656,15 +671,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.searchResults = [];
       }
     });
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', (event) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.dropdown') && !target.closest('.search-container')) {
-        this.activeDropdown = null;
-        this.hideResults();
-      }
-    });
   }
 
   ngOnInit() {
@@ -677,39 +683,20 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.activeDropdown = null;
       this.isMobileMenuOpen = false;
     });
+
+    this.cartSubscription = this.cartService.cartItems$.subscribe(items => {
+      this.cartCount = items.length;
+      this.cdr.markForCheck();
+    });
   }
 
   toggleDropdown(dropdownName: string, event: Event) {
-    event.preventDefault();
     event.stopPropagation();
-    
-    // Toggle the dropdown
-    if (this.activeDropdown === dropdownName) {
-      this.activeDropdown = null;
-    } else {
-      this.activeDropdown = dropdownName;
-    }
-
-    // Add click event listener to close dropdown when clicking outside
-    setTimeout(() => {
-      if (this.activeDropdown) {
-        const closeDropdown = (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
-          if (!target.closest('.dropdown')) {
-            this.activeDropdown = null;
-            document.removeEventListener('click', closeDropdown);
-          }
-        };
-        document.addEventListener('click', closeDropdown);
-      }
-    }, 0);
+    this.activeDropdown = this.activeDropdown === dropdownName ? null : dropdownName;
   }
 
   toggleMobileMenu() {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
-    if (!this.isMobileMenuOpen) {
-      this.activeDropdown = null;
-    }
   }
 
   openLocationInMaps() {
@@ -736,6 +723,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   logout(event: Event) {
     event.preventDefault();
     this.authService.logout();
+    this.cdr.markForCheck();
     this.navigateTo('/', event);
   }
 
@@ -778,5 +766,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.cartSubscription) {
+      this.cartSubscription.unsubscribe();
+    }
   }
 }
