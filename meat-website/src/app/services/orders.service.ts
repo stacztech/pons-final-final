@@ -50,7 +50,7 @@ export interface OrderTracking {
   providedIn: 'root'
 })
 export class OrdersService implements OnDestroy {
-  private apiUrl = 'http://localhost:9000/api/orders';
+  private apiUrl = 'https://ponsbackend.onrender.com/api/orders';
 
   constructor(private authService: AuthService, private http: HttpClient) {
     // No need to subscribe to user changes for backend
