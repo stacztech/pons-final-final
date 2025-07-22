@@ -37,8 +37,8 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
 
-  private apiUrl = 'http://localhost:9000/api/auth';
-  private addressApiUrl = 'http://localhost:9000/api/addresses';
+  private apiUrl = 'https://ponsbackend.onrender.com/api/auth';
+  private addressApiUrl = 'https://ponsbackend.onrender.com/api/addresses';
 
   constructor(private http: HttpClient, private cartService: CartService) {
     this.checkAuth();
@@ -228,7 +228,7 @@ export class AuthService {
   }
 
   getAllUsers() {
-    return this.http.get<{ success: boolean, users: User[] }>('http://localhost:9000/api/auth/users', { withCredentials: true });
+    return this.http.get<{ success: boolean, users: User[] }>('https://ponsbackend.onrender.com/api/auth/users', { withCredentials: true });
   }
 
   /**
